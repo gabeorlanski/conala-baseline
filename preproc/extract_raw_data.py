@@ -8,7 +8,7 @@ import json
 import sys
 import nltk
 import traceback
-
+from tqdm import tqdm
 from canonicalize import *
 from util import get_encoded_code_tokens, detokenize_code, encode_tokenized_code, encoded_code_tokens_to_code, tokenize, compare_ast
 
@@ -24,7 +24,7 @@ if __name__ == '__main__':
                 for line in f:
                     dataset.append(json.loads(line.strip()))
 
-        for i, example in enumerate(dataset):
+        for i, example in tqdm(enumerate(dataset), file=sys.stdout, desc="Processing Raw Data"):
             intent = example['intent']
             if file_type == 'annotated':
               rewritten_intent = example['rewritten_intent']
@@ -51,16 +51,16 @@ if __name__ == '__main__':
                     decoded_reconstr_code = encoded_code_tokens_to_code(encoded_reconstr_code)
 
                     if not compare_ast(ast.parse(decoded_reconstr_code), ast.parse(snippet)):
-                        print(i)
-                        print('Original Snippet: %s' % snippet_reconstr)
-                        print('Tokenized Snippet: %s' % ' '.join(encoded_reconstr_code))
-                        print('decoded_reconstr_code: %s' % decoded_reconstr_code)
+                        tqdm.write(i)
+                        tqdm.write('Original Snippet: %s' % snippet_reconstr)
+                        tqdm.write('Tokenized Snippet: %s' % ' '.join(encoded_reconstr_code))
+                        tqdm.write('decoded_reconstr_code: %s' % decoded_reconstr_code)
 
                 except:
-                    print('*' * 20, file=sys.stderr)
-                    print(i, file=sys.stderr)
-                    print(intent, file=sys.stderr)
-                    print(snippet, file=sys.stderr)
+                    tqdm.write('*' * 20, file=sys.stderr)
+                    tqdm.write(i, file=sys.stderr)
+                    tqdm.write(intent, file=sys.stderr)
+                    tqdm.write(snippet, file=sys.stderr)
                     traceback.print_exc()
 
                     failed = True
