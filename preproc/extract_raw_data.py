@@ -24,7 +24,7 @@ if __name__ == '__main__':
                 for line in f:
                     dataset.append(json.loads(line.strip()))
 
-        for i, example in tqdm(enumerate(dataset), file=sys.stdout, desc="Processing Raw Data"):
+        for i, example in tqdm(enumerate(dataset),total=len(dataset), file=sys.stdout, desc="Processing Raw Data"):
             intent = example['intent']
             if file_type == 'annotated':
               rewritten_intent = example['rewritten_intent']
@@ -35,8 +35,9 @@ if __name__ == '__main__':
             # code_tokens = get_encoded_code_tokens(snippet)
             # print(' '.join(code_tokens))
 
-            failed = False
             intent_tokens = []
+            not_same_count = 0
+            failed_count = 0
             if rewritten_intent:
                 try:
                     canonical_intent, slot_map = canonicalize_intent(rewritten_intent)
@@ -51,19 +52,14 @@ if __name__ == '__main__':
                     decoded_reconstr_code = encoded_code_tokens_to_code(encoded_reconstr_code)
 
                     if not compare_ast(ast.parse(decoded_reconstr_code), ast.parse(snippet)):
-                        tqdm.write(i)
-                        tqdm.write('Original Snippet: %s' % snippet_reconstr)
-                        tqdm.write('Tokenized Snippet: %s' % ' '.join(encoded_reconstr_code))
-                        tqdm.write('decoded_reconstr_code: %s' % decoded_reconstr_code)
+                        # tqdm.write(str(i))
+                        # tqdm.write('Original Snippet: %s' % snippet_reconstr)
+                        # tqdm.write('Tokenized Snippet: %s' % ' '.join(encoded_reconstr_code))
+                        # tqdm.write('decoded_reconstr_code: %s' % decoded_reconstr_code)
+                        not_same_count+=1
 
-                except:
-                    tqdm.write('*' * 20, file=sys.stderr)
-                    tqdm.write(i, file=sys.stderr)
-                    tqdm.write(intent, file=sys.stderr)
-                    tqdm.write(snippet, file=sys.stderr)
-                    traceback.print_exc()
-
-                    failed = True
+                except Exception as e:
+                    failed_count+=1
                 finally:
                     example['slot_map'] = slot_map
 
@@ -77,5 +73,6 @@ if __name__ == '__main__':
 
             example['intent_tokens'] = intent_tokens
             example['snippet_tokens'] = encoded_reconstr_code
-
+        print("{}/{} did not have the same AST after reconstruction".format(not_same_count,len(dataset)))
+        print("{}/{} Failed".format(failed_count,len(dataset)))
         json.dump(dataset, open(file_path + '.seq2seq', 'w'), indent=2)
